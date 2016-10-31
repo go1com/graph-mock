@@ -1,0 +1,15 @@
+{
+  "name": "go1/graph-mock",
+  "license": "proprietary",
+  "prefer-stable": true,
+  "minimum-stability": "stable",
+  "autoload": {
+    "psr-4": {
+      "go1\\graphmock\\": "./"
+    }
+  },
+  "require": {
+    "graphaware/neo4j-php-client": "^4.6",
+    "go1/util": "dev-master"
+  }
+}
