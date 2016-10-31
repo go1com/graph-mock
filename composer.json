@@ -5,7 +5,7 @@
   "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
-      "go1\\graphmock\\": "./"
+      "go1\\graph_mock\\": "./"
     }
   },
   "require": {
