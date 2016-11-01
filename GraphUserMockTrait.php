@@ -63,21 +63,19 @@ trait GraphUserMockTrait
             $hasRootAccount = GraphEdgeTypes::HAS_ROOT_ACCOUNT;
 
             $stack->push(
-                "MATCH (user:User { id: {rootId} })"
+                "MATCH (user:User { id: {$user['id']} })"
               . " MATCH (account:User)"
               . " MATCH (user)-[r:$hasAccount]->(account)"
               . " MATCH (account)-[rr:$hasRootAccount]->(user)"
-              . " DELETE r, rr",
-                ['rootId' => $user['id']]
+              . " DELETE r, rr"
             );
 
             foreach ($user['accounts'] as $accountId) {
                 $stack->push(
-                    "MATCH (user:User { id: {rootId} })"
-                  . " MERGE (account:User { id: {id} })"
+                    "MATCH (user:User { id: {$user['id']} })"
+                  . " MERGE (account:User { id: {$accountId} })"
                   . " MERGE (user)-[:$hasAccount]->(account)"
-                  . " MERGE (account)-[:$hasRootAccount]->(user)",
-                    ['rootId' => $user['id'], 'id' => $accountId]
+                  . " MERGE (account)-[:$hasRootAccount]->(user)"
                 );
             }
         }
