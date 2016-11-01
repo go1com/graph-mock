@@ -1,5 +1,5 @@
 {
-  "name": "php/graph-mock",
+  "name": "go1/graph-mock",
   "license": "proprietary",
   "prefer-stable": true,
   "minimum-stability": "stable",
