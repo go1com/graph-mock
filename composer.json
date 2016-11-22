@@ -1,8 +1,6 @@
 {
   "name": "go1/graph-mock",
   "license": "proprietary",
-  "prefer-stable": true,
-  "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
       "go1\\graph_mock\\": "./"
