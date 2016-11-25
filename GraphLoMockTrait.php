@@ -11,37 +11,31 @@ trait GraphLoMockTrait
 {
     public function createGraphTag(Client $client, $instanceId, $tag, $parentName = null)
     {
-        static $autoTagId;
-        $hasGroup   = GraphEdgeTypes::HAS_GROUP;
-        $hasMember  = GraphEdgeTypes::HAS_MEMBER;
-        $hasItem    = GraphEdgeTypes::HAS_ITEM;
+        $hasMember   = GraphEdgeTypes::HAS_MEMBER;
+        $hasGroup    = GraphEdgeTypes::HAS_GROUP;
+        $hasRoParent = GraphEdgeTypes::HAS_RO_PARENT;
+        $hasRoTag    = GraphEdgeTypes::HAS_RO_TAG;
+        $hasRoChild  = GraphEdgeTypes::HAS_RO_CHILD;
+        $hasRo       = GraphEdgeTypes::HAS_RO;
+        $hasRoPortal = GraphEdgeTypes::HAS_RO_PORTAL;
 
         $q = "MERGE (portal:Group { name: {portalName} })"
-           . " MERGE (tag:Tag { name: {tagName} })-[:$hasGroup]->(portal)"
-           . " MERGE (portal)-[:$hasMember]->(tag)"
-           . "     ON CREATE SET tag.id = {tagId}"
-           . "     ON MATCH SET tag.id = {tagId}";
+           . " MERGE (tag:Tag { name: {tagName} })"
+           . " MERGE (tag)-[:$hasGroup]->(portal)"
+           . " MERGE (portal)-[:$hasMember]->(tag)";
         $p = [
             'portalName' => "portal:$instanceId",
-            'tagId'      => ++$autoTagId,
             'tagName'    => $tag,
         ];
         if ($parentName) {
-            $q .= " MERGE (parent:Tag { name: {parentName} })-[:$hasGroup]->(portal)"
-                . " MERGE (portal)-[:$hasMember]->(parent)"
-                . "     ON CREATE SET parent.id = {parentId}"
-                . "     ON MATCH SET parent.id = coalesce(parent.id, {parentId})"
-                . " MERGE (parent)-[:$hasItem]->(tag)";
-            $p += [
-                'parentId'   => ++$autoTagId,
-                'parentName' => $parentName,
-            ];
+            $q .= " MERGE (parentTag:Tag { name: {parentName} })"
+                . " MERGE (tag)-[:$hasRoParent]->(parentRo:Parent:RO)-[:$hasRoTag]->(tag)"
+                . " MERGE (parentTag)-[:$hasRoChild]->(parentRo)-[:$hasRoTag]->(parentTag)"
+                . " MERGE (portal)-[:$hasRo]->(parentRo)-[:$hasRoPortal]->(portal)";
+            $p['parentName'] = $parentName;
         }
-        $q .= " RETURN tag.id";
 
-        $result = $client->run($q, $p);
-
-        return $result->firstRecord()->get('tag.id');
+        $client->run($q, $p);
     }
 
     public function createGraphLearningPathway(Client $client, array $options = [])
@@ -132,7 +126,7 @@ trait GraphLoMockTrait
             $stack->push(
                 "MATCH (lo:{$course['type']} { id: {$course['id']} })"
               . " MERGE (author:User { id: $authorId })"
-              . " MERGE (lo)-[r:$hasAuthor]->(author)"
+              . " MERGE (lo)-[:$hasAuthor]->(author)"
               . " MERGE (author)-[:$hasLO]->(lo)"
             );
         }
@@ -149,7 +143,7 @@ trait GraphLoMockTrait
             $stack->push(
                 "MATCH (lo:{$course['type']} { id: {$course['id']} })"
               . " MERGE (tutor:User { id: $tutorId })"
-              . " MERGE (lo)-[r:$hasTutor]->(tutor)"
+              . " MERGE (lo)-[:$hasTutor]->(tutor)"
               . " MERGE (tutor)-[:$hasLO]->(lo)"
             );
         }
@@ -312,23 +306,38 @@ trait GraphLoMockTrait
         $hasMember  = GraphEdgeTypes::HAS_MEMBER;
         $hasTag     = GraphEdgeTypes::HAS_TAG;
 
+        $stack->push("MATCH (lo:{$course['type']} { id: {$course['id']} })-[r:$hasTag]->() DELETE r");
         if (isset($course['tags']) && is_array($course['tags'])) {
             foreach ($course['tags'] as $tag) {
-                $stack->push(
-                    "MATCH (lo:{$course['type']} { id: {$course['id']} })"
-                  . " MERGE (portal:Group { name: {portal} })"
-                  . " MERGE (tag:Tag { name: {name} })-[:$hasGroup]->(portal)"
-                  . " MERGE (portal)-[r:$hasMember]->(tag)"
-                  . "  ON CREATE SET r.count = 1"
-                  . "  ON MATCH SET r.count = coalesce(r.count, 0) + 1"
-                  . " MERGE (lo)-[:$hasTag]->(tag)",
-                    [
-                        'name'      => $tag,
-                        'portal'    => "portal:{$course['instance_id']}",
-                    ]
-                );
+                if ($tag = trim($tag)) {
+                    $stack->push(
+                        "MATCH (lo:{$course['type']} { id: {$course['id']} })"
+                      . " MERGE (portal:Group { name: {portal} })"
+                      . " MERGE (tag:Tag { name: {name} })"
+                      . " MERGE (tag)-[:$hasGroup]->(portal)"
+                      . " MERGE (portal)-[:$hasMember]->(tag)"
+                      . " MERGE (lo)-[:$hasTag]->(tag)",
+                        ['name' => $tag, 'portal' => "portal:{$course['instance_id']}"]
+                    );
+                }
             }
         }
+
+        // Delete orphan tag
+        $stack->push(
+            "MATCH (tag:Tag)"
+          . " WHERE NOT (tag)<-[:$hasTag]-()"
+          . " DETACH DELETE tag"
+        );
+        
+        // Delete orphan RO
+        // RO must have at least 6 connection (2 to portal, 4 to two related entities)
+        $stack->push(
+            "MATCH (ro:RO)-[r]-(o)"
+          . " WITH ro, count(o) AS count, collect(o) as col"
+          . " WHERE count < 6"
+          . " DETACH DELETE ro"
+        );
 
         return $this;
     }
