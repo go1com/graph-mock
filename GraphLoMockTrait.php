@@ -323,12 +323,15 @@ trait GraphLoMockTrait
             }
         }
 
-        // delete orphan tag and RO
+        // Delete orphan tag
         $stack->push(
             "MATCH (tag:Tag)"
           . " WHERE NOT (tag)<-[:$hasTag]-()"
           . " DETACH DELETE tag"
         );
+        
+        // Delete orphan RO
+        // RO must have at least 6 connection (2 to portal, 4 to two related entities)
         $stack->push(
             "MATCH (ro:RO)-[r]-(o)"
           . " WITH ro, count(o) AS count, collect(o) as col"
