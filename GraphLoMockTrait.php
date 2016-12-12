@@ -9,8 +9,9 @@ use GraphAware\Neo4j\Client\Stack;
 
 trait GraphLoMockTrait
 {
-    public function createGraphTag(Client $client, $instanceId, $tag, $parentName = null)
+    public function createGraphTag(Client $client, $instanceId, $tag, $parentNames = null)
     {
+        $parentNames = (array) $parentNames;
         $hasMember   = GraphEdgeTypes::HAS_MEMBER;
         $hasGroup    = GraphEdgeTypes::HAS_GROUP;
         $hasRoParent = GraphEdgeTypes::HAS_RO_PARENT;
@@ -27,12 +28,15 @@ trait GraphLoMockTrait
             'portalName' => "portal:$instanceId",
             'tagName'    => $tag,
         ];
-        if ($parentName) {
-            $q .= " MERGE (parentTag:Tag { name: {parentName} })"
-                . " MERGE (tag)-[:$hasRoParent]->(parentRo:Parent:RO)-[:$hasRoTag]->(tag)"
-                . " MERGE (parentTag)-[:$hasRoChild]->(parentRo)-[:$hasRoTag]->(parentTag)"
-                . " MERGE (portal)-[:$hasRo]->(parentRo)-[:$hasRoPortal]->(portal)";
-            $p['parentName'] = $parentName;
+
+        foreach ($parentNames as $i => $parentName) {
+            $parentAlias = 'parent' . $i;
+            $parentRoAlias = 'parentRo' . $i;
+            $q .= " MERGE ($parentAlias:Tag { name: {{$parentAlias}} })"
+                . " MERGE (tag)-[:$hasRoParent]->($parentRoAlias:Parent:RO)-[:$hasRoTag]->(tag)"
+                . " MERGE ($parentAlias)-[:$hasRoChild]->($parentRoAlias)-[:$hasRoTag]->($parentAlias)"
+                . " MERGE (portal)-[:$hasRo]->($parentRoAlias)-[:$hasRoPortal]->(portal)";
+            $p[$parentAlias] = $parentName;
         }
 
         $client->run($q, $p);
