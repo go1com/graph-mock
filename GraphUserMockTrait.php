@@ -32,6 +32,7 @@ trait GraphUserMockTrait
             'instance_id' => isset($options['instance_id']) ? $options['instance_id'] : 0,
             'status'      => isset($options['status']) ? $options['status'] : 1,
             'accounts'    => isset($options['accounts']) ? $options['accounts'] : [],
+            'managers'    => isset($options['managers']) ? $options['managers'] : [],
             'roles'       => isset($options['roles']) ? $options['roles'] : [],
         ];
 
@@ -46,6 +47,7 @@ trait GraphUserMockTrait
 
         $this
             ->linkUserAccounts($stack, $user)
+            ->linkUserManagers($stack, $user)
             ->linkUserPortal($stack, $user)
             ->linkUserPublicGroup($stack, $user)
             ->linkUserMarketplaceGroup($stack, $user)
@@ -76,6 +78,33 @@ trait GraphUserMockTrait
                   . " MERGE (account:User { id: {$accountId} })"
                   . " MERGE (user)-[:$hasAccount]->(account)"
                   . " MERGE (account)-[:$hasRootAccount]->(user)"
+                );
+            }
+        }
+
+        return $this;
+    }
+
+    private function linkUserManagers(Stack $stack, $user)
+    {
+        if (!empty($user['managers'])) {
+            $hasManager = GraphEdgeTypes::HAS_MANAGER;
+            $hasLearner = GraphEdgeTypes::HAS_LEARNER;
+
+            $stack->push(
+                "MATCH (user:User { id: {$user['id']} })"
+              . " MATCH (account:User)"
+              . " MATCH (user)-[r:$hasManager]->(manager)"
+              . " MATCH (manager)-[rr:$hasLearner]->(user)"
+              . " DELETE r, rr"
+            );
+
+            foreach ($user['managers'] as $managerId) {
+                $stack->push(
+                    "MATCH (user:User { id: {$user['id']} })"
+                  . " MERGE (manager:User { id: {$managerId} })"
+                  . " MERGE (user)-[:$hasManager]->(manager)"
+                  . " MERGE (manager)-[:$hasLearner]->(user)"
                 );
             }
         }
