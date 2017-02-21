@@ -9,9 +9,8 @@ use GraphAware\Neo4j\Client\Stack;
 
 trait GraphLoMockTrait
 {
-    public function createGraphTag(Client $client, $instanceId, $tag, $parentNames = null)
+    public function createGraphTag(Client $client, $instanceId, $tag, $parentName = null)
     {
-        $parentNames = (array) $parentNames;
         $hasMember   = GraphEdgeTypes::HAS_MEMBER;
         $hasGroup    = GraphEdgeTypes::HAS_GROUP;
         $hasRoParent = GraphEdgeTypes::HAS_RO_PARENT;
@@ -28,15 +27,12 @@ trait GraphLoMockTrait
             'portalName' => "portal:$instanceId",
             'tagName'    => $tag,
         ];
-
-        foreach ($parentNames as $i => $parentName) {
-            $parentAlias = 'parent' . $i;
-            $parentRoAlias = 'parentRo' . $i;
-            $q .= " MERGE ($parentAlias:Tag { name: {{$parentAlias}} })"
-                . " MERGE (tag)-[:$hasRoParent]->($parentRoAlias:Parent:RO)-[:$hasRoTag]->(tag)"
-                . " MERGE ($parentAlias)-[:$hasRoChild]->($parentRoAlias)-[:$hasRoTag]->($parentAlias)"
-                . " MERGE (portal)-[:$hasRo]->($parentRoAlias)-[:$hasRoPortal]->(portal)";
-            $p[$parentAlias] = $parentName;
+        if ($parentName) {
+            $q .= " MERGE (parentTag:Tag { name: {parentName} })"
+                . " MERGE (tag)-[:$hasRoParent]->(parentRo:Parent:RO)-[:$hasRoTag]->(tag)"
+                . " MERGE (parentTag)-[:$hasRoChild]->(parentRo)-[:$hasRoTag]->(parentTag)"
+                . " MERGE (portal)-[:$hasRo]->(parentRo)-[:$hasRoPortal]->(portal)";
+            $p['parentName'] = $parentName;
         }
 
         $client->run($q, $p);
@@ -373,11 +369,14 @@ trait GraphLoMockTrait
         foreach ($course['parents'] as $item) {
             $itemType = isset($item['type']) ? $item['type'] : 'Course';
             $itemType = GraphEdgeTypes::type($itemType);
+            $elective = isset($item['edge_type'])
+                ? in_array($item['edge_type'], [EdgeTypes::HAS_ELECTIVE_LO, EdgeTypes::HAS_ELECTIVE_LI])
+                : false;
             $stack->push(
                 "MATCH (lo:{$course['type']} { id: {$course['id']} })"
               . " MERGE (parent:{$itemType} { id: {$item['id']} })"
               . " MERGE (parent)-[r:$hasItem]->(lo) SET r.elective = {elective}",
-                ['elective' => in_array($item['edge_type'], [EdgeTypes::HAS_ELECTIVE_LO, EdgeTypes::HAS_ELECTIVE_LI])]
+                ['elective' => $elective]
             );
         }
 
