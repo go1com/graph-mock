@@ -4,28 +4,16 @@ namespace go1\graph_mock;
 
 use go1\util\GraphEdgeTypes;
 use GraphAware\Neo4j\Client\Client;
-use GraphAware\Neo4j\Client\Stack;
 
 trait GraphSocialMockTrait
 {
-    private $hasTag;
-    private $hasAccount;
-    private $hasGroup;
-    private $hasGroupOwn;
-    private $hasMember;
-    private $hasFollowing;
-    private $hasFollower;
-
-    public function __construct()
-    {
-        $this->hasTag = GraphEdgeTypes::HAS_TAG;
-        $this->hasAccount = GraphEdgeTypes::HAS_ACCOUNT;
-        $this->hasGroup = GraphEdgeTypes::HAS_GROUP;
-        $this->hasGroupOwn = GraphEdgeTypes::HAS_GROUP_OWN;
-        $this->hasMember = GraphEdgeTypes::HAS_MEMBER;
-        $this->hasFollowing = GraphEdgeTypes::HAS_FOLLOWING;
-        $this->hasFollower = GraphEdgeTypes::HAS_FOLLOWER;
-    }
+    private $hasTag = GraphEdgeTypes::HAS_TAG;
+    private $hasAccount = GraphEdgeTypes::HAS_ACCOUNT;
+    private $hasGroup = GraphEdgeTypes::HAS_GROUP;
+    private $hasGroupOwn = GraphEdgeTypes::HAS_GROUP_OWN;
+    private $hasMember = GraphEdgeTypes::HAS_MEMBER;
+    private $hasFollowing = GraphEdgeTypes::HAS_FOLLOWING;
+    private $hasFollower = GraphEdgeTypes::HAS_FOLLOWER;
 
     protected function addGraphUserTag(Client $client, $userId, $tagNames) {
         $stack = $client->stack();
