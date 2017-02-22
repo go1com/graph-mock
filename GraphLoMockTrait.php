@@ -374,9 +374,12 @@ trait GraphLoMockTrait
                 : false;
             $stack->push(
                 "MATCH (lo:{$course['type']} { id: {$course['id']} })"
-              . " MERGE (parent:{$itemType} { id: {$item['id']} })"
+              . " MERGE (parent:{$itemType}:Group { id: {$item['id']}, name: {parentName} })"
               . " MERGE (parent)-[r:$hasItem]->(lo) SET r.elective = {elective}",
-                ['elective' => $elective]
+                [
+                    'parentName' => "lo:{$item['id']}",
+                    'elective'   => $elective,
+                ]
             );
         }
 
