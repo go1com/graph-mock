@@ -42,38 +42,39 @@ trait GraphSocialMockTrait
         $client->run($query);
     }
 
-    protected function createGraphGroup(Client $client, $id, $authorId = 0, $title = '', $created = 0, $type = 'public') {
-        $title = $title ? $title : uniqid('group');
-        $created = $created ? $created : time();
-        $authorId = $authorId ? $authorId : 1;
+    protected function createGraphGroup(Client $client, array $option) {
+
+        $id = isset($option['id']) ? $option['id'] : 1;
 
         $stack = $client->stack();
         $stack->push("MERGE (g:Group { id: {$id} }) SET g += {data}",
-             [
+            [
                 'data' => [
-                    'name'          => "group:{$id}",
-                    'title'         => $title,
-                    'created'       => (int)$created,
-                    'type'          => $type,
+                    'name'      => "group:{$id}",
+                    'title'     => isset($option['title']) ? $option['title'] : uniqid('group'),
+                    'created'   => isset($option['created']) ? $option['created'] : time(),
+                    'type'      => isset($option['type']) ? $option['type'] : 'public'
                 ]
             ]
         );
 
-        if ($type == 'public') {
-            $stack->push(
-                    "MATCH (g:Group { id: {$id}})"
-                    . " MATCH (p:Group { name: {public}})"
-                    . " MERGE (g)-[:{$this->hasGroup}]->(p)"
-                    . " MERGE (p)-[:{$this->hasMember}]->(g)",
-                ['public' => 'public']
-            );
-        }
+        $instanceId = isset($option['instance_id']) ? $option['instance_id'] : 1;
+        $stack[] = [
+            'query'   =>
+                "MERGE (p:Group { name: {portalName} })"
+                . " MERGE (g:Group { name: {groupName} })"
+                . " MERGE (g)-[:{$this->hasGroup}]->(p)"
+                . " MERGE (p)-[:{$this->hasMember}]->(g)",
+            'context' => ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"],
+        ];
 
+        $authorId = isset($option['user_id']) ? $option['user_id'] : 1;
+        $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 1;
         $stack->push(
-                "MATCH (u:User { id: {$authorId}})"
-                . " MATCH (g:Group { id: {$id}})"
-                . " MERGE (u)-[:{$this->hasGroupOwn}]->(g)"
-                . " MERGE (g)-[:{$this->hasMember}]->(u)"
+            "MATCH (u:User { id: {$authorId} })-[:{$this->hasAccount}]->(sub:User { id: {$subAuthorId} })"
+            . " MATCH (g:Group { id: {$id}})"
+            . " MERGE (u)-[:{$this->hasGroupOwn}]->(g)"
+            . " MERGE (g)-[:{$this->hasMember}]->(u)"
         );
 
         $client->runStack($stack);
