@@ -43,8 +43,8 @@ trait GraphSocialMockTrait
     }
 
     protected function createGraphGroup(Client $client, array $option) {
-
-        $id = isset($option['id']) ? $option['id'] : 1;
+        static $autoId;
+        $id = isset($option['id']) ? $option['id'] : $autoId++;
 
         $stack = $client->stack();
         $stack->push("MERGE (g:Group { id: {$id}, name: {name} }) SET g += {data}",
