@@ -42,38 +42,37 @@ trait GraphSocialMockTrait
         $client->run($query);
     }
 
-    protected function createGraphGroup(Client $client, $id, $authorId = 0, $title = '', $created = 0, $type = 'public') {
-        $title = $title ? $title : uniqid('group');
-        $created = $created ? $created : time();
-        $authorId = $authorId ? $authorId : 1;
+    protected function createGraphGroup(Client $client, array $option) {
+        static $autoId;
+        $id = isset($option['id']) ? $option['id'] : $autoId++;
 
         $stack = $client->stack();
-        $stack->push("MERGE (g:Group { id: {$id} }) SET g += {data}",
-             [
+        $stack->push("MERGE (g:Group { id: {$id}, name: {name} }) SET g += {data}",
+            [
+                'name'      => "group:{$id}",
                 'data' => [
-                    'name'          => "group:{$id}",
-                    'title'         => $title,
-                    'created'       => (int)$created,
-                    'type'          => $type,
+                    'title'     => isset($option['title']) ? $option['title'] : uniqid('group'),
+                    'created'   => isset($option['created']) ? $option['created'] : time(),
+                    'type'      => isset($option['type']) ? $option['type'] : 'public'
                 ]
             ]
         );
 
-        if ($type == 'public') {
-            $stack->push(
-                    "MATCH (g:Group { id: {$id}})"
-                    . " MATCH (p:Group { name: {public}})"
-                    . " MERGE (g)-[:{$this->hasGroup}]->(p)"
-                    . " MERGE (p)-[:{$this->hasMember}]->(g)",
-                ['public' => 'public']
-            );
-        }
+        $instanceId = isset($option['instance_id']) ? $option['instance_id'] : 0;
+        $instanceId && $stack->push("MERGE (p:Group { name: {portalName} })"
+            . " MATCH (g:Group { id: {$id}, name: {groupName} })"
+            . " MERGE (g)-[:{$this->hasGroup}]->(p)"
+            . " MERGE (p)-[:{$this->hasMember}]->(g)",
+            ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"]
+        );
 
-        $stack->push(
-                "MATCH (u:User { id: {$authorId}})"
-                . " MATCH (g:Group { id: {$id}})"
-                . " MERGE (u)-[:{$this->hasGroupOwn}]->(g)"
-                . " MERGE (g)-[:{$this->hasMember}]->(u)"
+        $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 0;
+        $subAuthorId && $stack->push(
+            "MERGE (sub:User { id: {$subAuthorId} })"
+            . " MATCH (g:Group { id: {$id}, name: {groupName}})"
+            . " MERGE (sub)-[:{$this->hasGroupOwn}]->(g)"
+            . " MERGE (g)-[:{$this->hasMember}]->(sub)",
+            ['groupName' => "group:{$id}"]
         );
 
         $client->runStack($stack);
@@ -81,10 +80,10 @@ trait GraphSocialMockTrait
 
     protected function addGraphUserGroup(Client $client, $userId, $groupId) {
         $query = "MATCH (u:User { id: {$userId} })"
-            . " MATCH (g:Group { id: {$groupId} })"
+            . " MATCH (g:Group { id: {$groupId}, name: {groupName} })"
             . " MERGE (u)-[:{$this->hasGroup}]->(g)"
             . " MERGE (g)-[:{$this->hasMember}]->(u)";
 
-        $client->run($query);
+        $client->run($query, ['groupName' => "group:{$groupId}"]);
     }
 }
