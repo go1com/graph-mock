@@ -59,14 +59,12 @@ trait GraphSocialMockTrait
         );
 
         $instanceId = isset($option['instance_id']) ? $option['instance_id'] : 1;
-        $stack[] = [
-            'query'   =>
-                "MERGE (p:Group { name: {portalName} })"
-                . " MERGE (g:Group { name: {groupName} })"
-                . " MERGE (g)-[:{$this->hasGroup}]->(p)"
-                . " MERGE (p)-[:{$this->hasMember}]->(g)",
-            'context' => ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"],
-        ];
+        $stack->push("MERGE (p:Group { name: {portalName} })"
+            . " MERGE (g:Group { name: {groupName} })"
+            . " MERGE (g)-[:{$this->hasGroup}]->(p)"
+            . " MERGE (p)-[:{$this->hasMember}]->(g)",
+            ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"]
+        );
 
         $authorId = isset($option['user_id']) ? $option['user_id'] : 1;
         $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 1;
