@@ -58,21 +58,20 @@ trait GraphSocialMockTrait
             ]
         );
 
-        $instanceId = isset($option['instance_id']) ? $option['instance_id'] : 1;
-        $stack->push("MERGE (p:Group { name: {portalName} })"
-            . " MERGE (g:Group { id: {$id}, name: {groupName} })"
+        $instanceId = isset($option['instance_id']) ? $option['instance_id'] : 0;
+        $instanceId && $stack->push("MERGE (p:Group { name: {portalName} })"
+            . " MATCH (g:Group { id: {$id}, name: {groupName} })"
             . " MERGE (g)-[:{$this->hasGroup}]->(p)"
             . " MERGE (p)-[:{$this->hasMember}]->(g)",
             ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"]
         );
 
-        $authorId = isset($option['user_id']) ? $option['user_id'] : 1;
-        $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 1;
-        $stack->push(
-            "MATCH (u:User { id: {$authorId} })-[:{$this->hasAccount}]->(sub:User { id: {$subAuthorId} })"
+        $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 0;
+        $subAuthorId && $stack->push(
+            "MERGE (sub:User { id: {$subAuthorId} })"
             . " MATCH (g:Group { id: {$id}, name: {groupName}})"
-            . " MERGE (u)-[:{$this->hasGroupOwn}]->(g)"
-            . " MERGE (g)-[:{$this->hasMember}]->(u)",
+            . " MERGE (sub)-[:{$this->hasGroupOwn}]->(g)"
+            . " MERGE (g)-[:{$this->hasMember}]->(sub)",
             ['groupName' => "group:{$id}"]
         );
 
