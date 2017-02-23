@@ -47,10 +47,10 @@ trait GraphSocialMockTrait
         $id = isset($option['id']) ? $option['id'] : 1;
 
         $stack = $client->stack();
-        $stack->push("MERGE (g:Group { id: {$id} }) SET g += {data}",
+        $stack->push("MERGE (g:Group { id: {$id}, name: {name} }) SET g += {data}",
             [
+                'name'      => "group:{$id}",
                 'data' => [
-                    'name'      => "group:{$id}",
                     'title'     => isset($option['title']) ? $option['title'] : uniqid('group'),
                     'created'   => isset($option['created']) ? $option['created'] : time(),
                     'type'      => isset($option['type']) ? $option['type'] : 'public'
@@ -70,9 +70,10 @@ trait GraphSocialMockTrait
         $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 1;
         $stack->push(
             "MATCH (u:User { id: {$authorId} })-[:{$this->hasAccount}]->(sub:User { id: {$subAuthorId} })"
-            . " MATCH (g:Group { id: {$id}})"
+            . " MATCH (g:Group { name: {groupName}})"
             . " MERGE (u)-[:{$this->hasGroupOwn}]->(g)"
-            . " MERGE (g)-[:{$this->hasMember}]->(u)"
+            . " MERGE (g)-[:{$this->hasMember}]->(u)",
+            ['groupName' => "group:{$id}"]
         );
 
         $client->runStack($stack);
@@ -80,10 +81,10 @@ trait GraphSocialMockTrait
 
     protected function addGraphUserGroup(Client $client, $userId, $groupId) {
         $query = "MATCH (u:User { id: {$userId} })"
-            . " MATCH (g:Group { id: {$groupId} })"
+            . " MATCH (g:Group { name: {groupName} })"
             . " MERGE (u)-[:{$this->hasGroup}]->(g)"
             . " MERGE (g)-[:{$this->hasMember}]->(u)";
 
-        $client->run($query);
+        $client->run($query, ['groupName' => "group:{$groupId}"]);
     }
 }
