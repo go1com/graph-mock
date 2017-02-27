@@ -3,6 +3,7 @@
 namespace go1\graph_mock;
 
 use go1\util\GraphEdgeTypes;
+use go1\util\GroupStatus;
 use GraphAware\Neo4j\Client\Client;
 
 trait GraphSocialMockTrait
@@ -50,11 +51,11 @@ trait GraphSocialMockTrait
         $stack = $client->stack();
         $stack->push("MERGE (g:Group { id: {$id}, name: {name} }) SET g += {data}",
             [
-                'name'      => "group:{$id}",
+                'name' => "group:{$id}",
                 'data' => [
-                    'title'     => isset($option['title']) ? $option['title'] : uniqid('group'),
-                    'created'   => isset($option['created']) ? $option['created'] : time(),
-                    'type'      => isset($option['type']) ? $option['type'] : 'public'
+                    'title'         => isset($option['title']) ? $option['title'] : uniqid('group'),
+                    'created'       => isset($option['created']) ? $option['created'] : time(),
+                    'visibility'    => isset($option['visibility']) ? $option['visibility'] : GroupStatus::PUBLIC
                 ]
             ]
         );
