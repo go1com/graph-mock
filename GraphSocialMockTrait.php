@@ -68,7 +68,7 @@ trait GraphSocialMockTrait
             ['portalName' => "portal:{$instanceId}", 'groupName' => "group:{$id}"]
         );
 
-        $subAuthorId = isset($option['sub_user_id']) ? $option['sub_user_id'] : 0;
+        $subAuthorId = isset($option['account_id']) ? $option['account_id'] : 0;
         $subAuthorId && $stack->push(
             " MATCH (g:Group { id: {$id}, name: {groupName}})"
             . "MERGE (sub:User { id: {$subAuthorId} })"
